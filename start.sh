@@ -2,29 +2,35 @@
 
 echo "[INFO] Starting miner..."
 
-# load config
-source ./config.sh
-
-# detect CPU
 THREADS=$(nproc)
+WORKER="devbox-rig"
 
 echo "[INFO] CPU threads: $THREADS"
 echo "[INFO] Worker: $WORKER"
 
-# tải xmrig nếu chưa có
+# Download xmrig nếu chưa có
 if [ ! -f "xmrig" ]; then
     echo "[INFO] Downloading xmrig..."
-    wget -q https://github.com/xmrig/xmrig/releases/latest/download/xmrig-6.22.0-linux-x64.tar.gz
-    tar -xvf xmrig-*.tar.gz >/dev/null 2>&1
+
+    URL=$(wget -qO- https://api.github.com/repos/xmrig/xmrig/releases/latest \
+    | grep browser_download_url \
+    | grep linux-static-x64.tar.gz \
+    | cut -d '"' -f 4)
+
+    wget "$URL" -O xmrig.tar.gz
+
+    tar -xvf xmrig.tar.gz
     mv xmrig-*/xmrig .
-    rm -rf xmrig-*
+    chmod +x xmrig
 fi
 
-# chạy miner
+# Run miner (NO hugepage, NO msr, NO 1GB page)
 ./xmrig \
-  -o $POOL \
-  -u $WALLET \
-  -k \
-  --threads=$THREADS \
-  --cpu-max-threads-hint=$CPU_LIMIT \
-  --randomx-1gb-pages
+-o pool.supportxmr.com:3333 \
+-u WALLET_CUA_BAN \
+-k \
+-t $THREADS \
+--cpu-affinity=$((THREADS-1)) \
+--huge-pages=0 \
+--randomx-1gb-pages=0 \
+--donate-level=1
